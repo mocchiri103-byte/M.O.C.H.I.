@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "mochi": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M.O.C.H.I. ONLINE - 尾羽急電鉄</title>
+<style>
+:root{--bg:#0b1016;--panel:#131a22;--panel2:#1b2530;--border:#2a3744;--green:#00ff88;--red:#ff4444;--yellow:#ffcc00;--blue:#00bbff;--text:#e2e8f0;--dim:#829ab1}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}body{overflow:hidden}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.top{height:62px;background:#0f141a;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:8px 15px}.logo{color:var(--green);font-weight:bold;letter-spacing:1px}.sub{font-size:11px;color:var(--dim)}.clock{font-family:monospace;font-weight:bold;font-size:18px}
+.login{position:fixed;inset:0;background:rgba(5,8,12,.97);z-index:99;display:flex;align-items:center;justify-content:center;padding:20px}.login-card{width:min(460px,100%);background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:24px}.login-card h2{margin-top:0;color:var(--green)}
+.field{margin:12px 0}.field label{display:block;color:var(--dim);font-size:12px;margin-bottom:5px}input,select,textarea{width:100%;background:#080c11;color:#fff;border:1px solid var(--border);border-radius:5px;padding:9px}textarea{resize:vertical;min-height:65px}
+.btn{background:#202b36;color:#fff;border:1px solid var(--border);border-radius:5px;padding:9px 12px;font-weight:bold}.primary{background:#163628;border-color:#225940;color:var(--green)}.danger{background:#3b1b1b;border-color:#702525;color:#ff6666}.warn{background:#332b00;border-color:#665500;color:var(--yellow)}.blue{background:#062c3b;border-color:#075f7d;color:var(--blue)}.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.role-grid button{padding:13px}
+.app{height:calc(100vh - 62px);display:grid;grid-template-columns:minmax(0,1fr) 390px}.map{position:relative;overflow:auto;background:#080c11}.map-inner{position:relative;width:2100px;height:520px;margin:0 auto}.map-line{position:absolute;left:50px;right:50px;top:245px;height:5px;background:#4a657a;border-radius:4px}.station{position:absolute;top:228px;transform:translateX(-50%);text-align:center;font-size:12px;white-space:nowrap}.station-dot{width:15px;height:15px;background:#94a3b8;border-radius:50%;margin:auto;border:3px solid #0b1016}
+.train{position:absolute;transform:translate(-50%,-50%);width:48px;height:48px;border-radius:50%;background:#16212b;border:2px solid var(--green);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:bold;z-index:5}.train.delayed{border-color:var(--red)}.train.stopped{border-color:#ff2222;background:#4a0000;animation:blink 1.1s infinite}@keyframes blink{50%{opacity:.55}}
+.sidebar{background:var(--panel);border-left:1px solid var(--border);overflow:auto}.section{padding:12px;border-bottom:1px solid var(--border)}.section h3{font-size:13px;margin:0 0 9px;color:var(--dim)}.cards{display:flex;flex-direction:column;gap:7px}.card{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:9px}.card.selected{border-color:var(--green);background:#142a20}.row{display:flex;justify-content:space-between;gap:8px;align-items:center}.small{font-size:11px;color:var(--dim)}.badge{font-size:10px;padding:3px 6px;border-radius:4px;font-weight:bold}.ok{color:var(--green);background:#163628}.late{color:var(--red);background:#3b1b1b}.hold{color:#ff6666;background:#4a0000}.info{color:var(--blue);background:#062c3b}.flex{display:flex;gap:6px}.flex>*{flex:1}.hidden{display:none!important}.list-scroll{max-height:220px;overflow:auto}.msg{padding:8px;border-left:3px solid var(--blue);background:#101d25;margin:5px 0;font-size:12px}.notice{border-left-color:var(--yellow)}.timetable{width:100%;border-collapse:collapse;font-size:11px}.timetable th,.timetable td{border-bottom:1px solid var(--border);padding:6px;text-align:left}.timetable th{color:var(--dim)}#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#18222b;border:1px solid var(--green);padding:10px 16px;border-radius:6px;z-index:1000;display:none}
+@media(max-width:900px){body{overflow:auto}.app{height:auto;min-height:calc(100vh - 62px);display:block}.map{height:46vh}.sidebar{min-height:54vh;border-left:0;border-top:2px solid #000}.map-inner{margin-left:0}}
+</style>
+</head>
+<body>
+<div class="login" id="login">
+<div class="login-card">
+<h2>■ M.O.C.H.I. ONLINE</h2><div class="sub">尾羽急電鉄 統合指令システム</div>
+<div class="field"><label>表示名</label><input id="loginName" placeholder="例：田中 指令 / 1001運転士"></div>
+<div class="field"><label>役割</label><div class="role-grid">
+<button class="btn primary" data-role="dispatch">📡 指令</button>
+<button class="btn blue" data-role="driver">🚆 運転士</button>
+<button class="btn blue" data-role="conductor">🚋 車掌</button>
+<button class="btn warn" data-role="station">🏢 駅員</button>
+</div></div>
+<div class="small">Firebaseを設定すれば複数端末でリアルタイム共有できます。</div>
+<button class="btn" style="width:100%;margin-top:12px" id="demoBtn">デモモードで開始</button>
+</div></div>
+
+<header class="top"><div><div class="logo">■ M.O.C.H.I. ONLINE</div><div class="sub">Management & Operation Command Hub Integration</div></div><div class="clock" id="clock">00:00:00</div></header>
+<main class="app">
+<section class="map"><div class="map-inner">
+<div class="map-line"></div>
+<div class="station" style="left:100px"><div class="station-dot"></div>尾羽原</div>
+<div class="station" style="left:430px"><div class="station-dot"></div>井口</div>
+<div class="station" style="left:800px"><div class="station-dot"></div>参田町</div>
+<div class="station" style="left:1150px"><div class="station-dot"></div>本郷</div>
+<div class="station" style="left:1500px"><div class="station-dot"></div>千鳥</div>
+<div class="station" style="left:1900px"><div class="station-dot"></div>紀田</div>
+<div id="trainLayer"></div>
+</div></section>
+<aside class="sidebar">
+<div class="section"><div class="row"><h3 id="roleTitle">未ログイン</h3><button class="btn" id="logout">ログアウト</button></div><span id="connection" class="badge info">LOCAL DEMO</span></div>
+
+<div id="dispatchView" class="hidden">
+<div class="section"><h3>🚆 全車両位置・運行状況</h3><div id="dispatchTrains" class="cards"></div></div>
+<div class="section"><h3>📡 選択列車への指示</h3><div id="dispatchCommand"><div class="small">列車を選択してください。</div></div></div>
+<div class="section"><h3>💬 乗務員との連絡</h3><div id="dispatchMessages" class="list-scroll"></div><div class="flex"><input id="dispatchMsg" placeholder="乗務員への通告"><button class="btn primary" id="sendDispatchMsg">送信</button></div></div>
+</div>
+
+<div id="crewView" class="hidden">
+<div class="section"><h3>📋 スタフ</h3><div id="crewStaff"></div></div>
+<div class="section"><h3>📍 現在位置</h3><select id="crewPosition"></select><button class="btn primary" style="width:100%;margin-top:6px" id="updatePosition">位置を送信</button></div>
+<div class="section"><h3>📡 指令からの指示</h3><div id="crewMessages"></div></div>
+<div class="section"><h3>💬 指令へ連絡</h3><div class="flex"><input id="crewMsg" placeholder="指令への連絡"><button class="btn blue" id="sendCrewMsg">送信</button></div></div>
+</div>
+
+<div id="stationView" class="hidden">
+<div class="section"><h3>🚉 次に来る列車</h3><div id="stationUpcoming"></div></div>
+<div class="section"><h3>📢 駅からの連絡</h3><div id="stationMessages"></div><div class="flex"><input id="stationMsg" placeholder="指令への連絡"><button class="btn warn" id="sendStationMsg">送信</button></div></div>
+</div>
+</aside></main><div id="toast"></div>
+
+<script type="module">
+/* Firebase Consoleで作ったWebアプリの設定をここに入れる */
+const FIREBASE_CONFIG={apiKey:"YOUR_API_KEY",authDomain:"YOUR_PROJECT.firebaseapp.com",databaseURL:"https://YOUR_PROJECT-default-rtdb.firebaseio.com",projectId:"YOUR_PROJECT",storageBucket:"YOUR_PROJECT.firebasestorage.app",messagingSenderId:"YOUR_SENDER_ID",appId:"YOUR_APP_ID"};
+
+import{initializeApp}from"https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import{getDatabase,ref,set,update,onValue}from"https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+const firebaseReady=!Object.values(FIREBASE_CONFIG).some(v=>String(v).includes("YOUR_"));
+let db=null,localMode=true;
+const trainsDefault={
+"1001":{id:"1001レ",type:"快速",dest:"紀田行",x:420,pos:"井口",delay:0,yokushi:false,track:"2",extra:"",driver:"1001運転士",color:"#00ff88"},
+"3052":{id:"3052レ",type:"急行",dest:"尾羽原行",x:1640,pos:"千鳥",delay:0,yokushi:false,track:"1",extra:"",driver:"3052運転士",color:"#ffcc00"},
+"A501":{id:"A501レ",type:"特急",dest:"高徳空港行",x:900,pos:"高徳",delay:0,yokushi:false,track:"1",extra:"",driver:"A501運転士",color:"#00bbff"},
+"I202":{id:"I202レ",type:"普通",dest:"井口行",x:720,pos:"参田町",delay:0,yokushi:false,track:"1",extra:"",driver:"I202運転士",color:"#e2e8f0"},
+"C101":{id:"C101レ",type:"各停",dest:"奥千鳥行",x:1220,pos:"千鳥",delay:0,yokushi:false,track:"1",extra:"",driver:"C101運転士",color:"#ffcc00"}};
+const stations=["尾羽原","井口","参田町","本郷","千鳥","紀田"];
+const staff=[["20:42","井口","1001レ","快速","紀田行"],["20:48","千鳥","C101レ","各停","奥千鳥行"],["20:55","本郷","I202レ","普通","井口行"],["21:02","千鳥","3052レ","急行","尾羽原行"],["21:10","尾羽原","1001レ","快速","紀田行"]];
+let state={trains:structuredClone(trainsDefault),messages:[],selected:null,user:null};
+
+const $=id=>document.getElementById(id);
+function toast(s){$("toast").textContent=s;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",2300)}
+function save(){localStorage.setItem("mochiState",JSON.stringify(state))}
+function load(){try{const x=JSON.parse(localStorage.getItem("mochiState"));if(x?.trains)state={...state,...x}}catch{}}
+function roleName(r){return{dispatch:"📡 指令",driver:"🚆 運転士",conductor:"🚋 車掌",station:"🏢 駅員"}[r]}
+async function connect(){
+ if(!firebaseReady){load();return}
+ try{db=getDatabase(initializeApp(FIREBASE_CONFIG));localMode=false;
+ onValue(ref(db,"mochi"),s=>{const v=s.val();if(v){state.trains=v.trains||state.trains;state.messages=v.messages||[];render()}})
+ await set(ref(db,"mochi/trains"),state.trains)
+ }catch(e){localMode=true;load();toast("Firebase接続失敗 → デモモード")}
+}
+async function sync(){if(localMode){save();return}await update(ref(db,"mochi"),{trains:state.trains,messages:state.messages})}
+async function msg(from,to,text){if(!text.trim())return;state.messages.push({from,to,text:text.trim(),time:new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"})});await sync();render()}
+function status(t){return t.yokushi?'<span class="badge hold">抑止</span>':t.delay?`<span class="badge late">+${t.delay}分</span>`:'<span class="badge ok">定時</span>'}
+function map(){
+ $("trainLayer").innerHTML="";
+ Object.entries(state.trains).forEach(([k,t])=>{let d=document.createElement("div");d.className="train "+(t.yokushi?"stopped":t.delay?"delayed":"");d.style.left=t.x+"px";d.style.top="245px";d.style.borderColor=t.color;d.innerHTML=`<b>${k}</b><small>${t.type}</small>`;d.onclick=()=>{state.selected=k;render()};$("trainLayer").appendChild(d)})
+}
+function dispatch(){
+ $("dispatchTrains").innerHTML=Object.entries(state.trains).map(([k,t])=>`<div class="card ${state.selected===k?"selected":""}"><div class="row"><b style="color:${t.color}">${t.id}</b>${status(t)}</div><div class="small">${t.type} / ${t.dest}</div><div>📍 ${t.pos}　🛤 ${t.track}番線</div><button class="btn" style="width:100%;margin-top:5px" onclick="selectTrain('${k}')">詳細・指令</button></div>`).join("");
+ if(!state.selected){$("dispatchCommand").innerHTML='<div class="small">列車を選択してください。</div>';return}
+ const t=state.trains[state.selected];
+ $("dispatchCommand").innerHTML=`<div class="card"><b>${t.id} / ${t.driver}</b><div class="field"><label>行先</label><input id="cmdDest" value="${t.dest}"></div><div class="field"><label>指示</label><textarea id="cmdExtra">${t.extra||""}</textarea></div><div class="flex"><button class="btn primary" onclick="applyCmd()">送信</button><button class="btn danger" onclick="holdCmd()">${t.yokushi?"抑止解除":"抑止手配"}</button></div></div>`;
+}
+window.selectTrain=k=>{state.selected=k;render()};
+window.applyCmd=async()=>{let t=state.trains[state.selected];t.dest=$("cmdDest").value.trim()||t.dest;t.extra=$("cmdExtra").value.trim();await sync();await msg("指令",t.driver,`【運転指示】${t.extra||"指示事項なし"} / 行先：${t.dest}`);toast("乗務員へ送信しました")};
+window.holdCmd=async()=>{let t=state.trains[state.selected];t.yokushi=!t.yokushi;await sync();await msg("指令",t.driver,t.yokushi?"【緊急】運転を見合わせてください":"【指令】抑止を解除します");render()};
+function crew(){
+ let t=Object.values(state.trains).find(x=>x.driver===state.user.name)||Object.values(state.trains)[0];
+ $("crewStaff").innerHTML=`<div class="card"><b>${t.id}</b> ${t.type} ${t.dest}<br><span class="small">現在位置：${t.pos}</span></div><table class="timetable"><tr><th>時刻</th><th>駅</th><th>列車</th><th>行先</th></tr>${staff.map(s=>`<tr><td>${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td><td>${s[4]}</td></tr>`).join("")}</table>`;
+ $("crewPosition").innerHTML=stations.map(s=>`<option ${s===t.pos?"selected":""}>${s}</option>`).join("");
+ $("crewMessages").innerHTML=state.messages.filter(m=>m.to===state.user.name||m.to==="乗務員全体").slice(-8).reverse().map(m=>`<div class="msg notice"><b>${m.from}</b> ${m.time}<br>${m.text}</div>`).join("")||'<div class="small">指示はありません。</div>';
+}
+function station(){
+ $("stationUpcoming").innerHTML=`<table class="timetable"><tr><th>時刻</th><th>列車</th><th>種別</th><th>行先</th></tr>${staff.map(s=>`<tr><td>${s[0]}</td><td>${s[2]}</td><td>${s[3]}</td><td>${s[4]}</td></tr>`).join("")}</table>`;
+ $("stationMessages").innerHTML=state.messages.filter(m=>m.to==="駅員全体"||m.to==="指令").slice(-8).reverse().map(m=>`<div class="msg"><b>${m.from}</b> ${m.time}<br>${m.text}</div>`).join("")||'<div class="small">連絡はありません。</div>';
+}
+function render(){
+ map();$("roleTitle").textContent=state.user?roleName(state.user.role)+" / "+state.user.name:"未ログイン";$("connection").textContent=localMode?"LOCAL DEMO":"● ONLINE";
+ ["dispatchView","crewView","stationView"].forEach(x=>$(x).classList.add("hidden"));
+ if(state.user?.role==="dispatch"){ $("dispatchView").classList.remove("hidden");dispatch()}
+ if(["driver","conductor"].includes(state.user?.role)){ $("crewView").classList.remove("hidden");crew()}
+ if(state.user?.role==="station"){ $("stationView").classList.remove("hidden");station()}
+}
+document.querySelectorAll("[data-role]").forEach(b=>b.onclick=async()=>{state.user={name:$("loginName").value.trim()||"ゲスト",role:b.dataset.role};localStorage.setItem("mochiUser",JSON.stringify(state.user));$("login").classList.add("hidden");await connect();render()});
+$("demoBtn").onclick=async()=>{state.user={name:$("loginName").value.trim()||"デモ指令",role:"dispatch"};$("login").classList.add("hidden");load();render()};
+$("logout").onclick=()=>location.reload();
+$("updatePosition").onclick=async()=>{let t=Object.values(state.trains).find(x=>x.driver===state.user.name)||Object.values(state.trains)[0];t.pos=$("crewPosition").value;let xs={尾羽原:100,井口:430,参田町:800,本郷:1150,千鳥:1500,紀田:1900};t.x=xs[t.pos];await sync();await msg(state.user.name,"指令",`現在位置：${t.pos}`);toast("現在位置を送信しました")};
+$("sendDispatchMsg").onclick=async()=>{await msg("指令","乗務員全体",$("dispatchMsg").value);$("dispatchMsg").value=""};
+$("sendCrewMsg").onclick=async()=>{await msg(state.user.name,"指令",$("crewMsg").value);$("crewMsg").value=""};
+$("sendStationMsg").onclick=async()=>{await msg("駅員","指令",$("stationMsg").value);$("stationMsg").value=""};
+setInterval(()=>$("clock").textContent=new Date().toLocaleTimeString("ja-JP",{hour12:false}),1000);
+render();
+</script>
+</body></html>
